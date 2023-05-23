@@ -58,12 +58,11 @@ pipeline{
     stage('Commit changes to git'){
       steps{
         withCredentials([string(credentialsId: 'github-token',variable:'TOKEN')]){
-          withCredentials([string(credentialsId: 'github-repo', variable:'REPO_URL')])
           sh """
             git config --user.email jenkins@myexample.com
             git config --user.name jenkins
 
-            git remote set-url origin ${REPO_URL}
+            git remote set-url origin https://$TOKEN@github.com/jkrisch/devops-bootcamp-lecture-8.git
             git add .
             git commit -m 'version upgrade to ${env.NEW_VERSION}'
             git push origin HEAD:new-version

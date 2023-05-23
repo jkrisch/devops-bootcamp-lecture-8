@@ -35,7 +35,7 @@ pipeline{
       steps{
         script{
           dir('app'){
-            #install the necessary dependencies              
+            //install the necessary dependencies              
             npm install
             npm run test
           }

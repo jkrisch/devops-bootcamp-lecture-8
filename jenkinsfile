@@ -59,8 +59,8 @@ pipeline{
       steps{
         withCredentials([string(credentialsId: 'github-token',variable:'TOKEN')]){
           sh """
-            git config --user.email jenkins@myexample.com
-            git config --user.name jenkins
+            git config --global --user.email jenkins@myexample.com
+            git config --global --user.name jenkins
 
             git remote set-url origin https://$TOKEN@github.com/jkrisch/devops-bootcamp-lecture-8.git
             git add .

@@ -1,0 +1,67 @@
+pipeline{
+  agent any
+  tools {
+    nodejs "node"
+  }
+  stages{
+    stage('Increment Version'){
+      steps{
+        script {
+          #working dir app as the package.json file is located there and the npm command needs to be executed from within the folder where this file is located.
+          dir('app'){
+            def old_package_file = readJson 'package.json'
+            def old_version = old_package_file.version
+            def package_name = old_package_file.name
+            npm version minor
+            #npm version major
+            #npm version patch
+            
+            #To retrieve the new version you can read the package.json file
+            #https://www.jenkins.io/doc/pipeline/steps/pipeline-utility-steps/#readjson-read-json-from-files-in-the-workspace
+            def package_file = readJson 'package.json'
+            def version = package_file.version
+            env.NEW_VERSION = "$version"
+
+            echo "incrementing $package_name from $old_version to $version"
+            #define the version var used for the container image
+            env.IMAGE_VERSION = "$version-$BUILD_NUMBER" 
+          }
+        }
+      }
+    }
+    stage('Runt tests'){
+      steps{
+        script{
+          dir('app'){
+            #install the necessary dependencies              
+            npm install
+            npm run test
+          }
+        }
+      }
+    }
+    stage('Build new container image'){
+      withCredentials([usernamePassword(credentialsId: 'dockerhub-myrepo',usernameVariable:'USERNAME', passwordVariable:'PASSWORD')]){
+        sh """
+          echo ${PASSWORD} | docker login -u ${USERNAME} --password-stdin
+          docker build -t ${USERNAME}/node-js-app:${env.IMAGE_VERSION}
+          docker push ${USERNAME}/node-js-app:${env.IMAGE_VERSION}
+        """
+      }
+    }
+    stage('Commit changes to git'){
+      withCredentials([string(credentialsId: 'github-token',variable:'TOKEN')]){
+        withCredentials([string(credentialsId: 'github-repo', variable:'REPO_URL')])
+        sh """
+          git config --user.email jenkins@myexample.com
+          git config --user.name jenkins
+
+          git remote set-url origin ${REPO_URL}
+          git add .
+          git commit -m 'version upgrade to ${env.NEW_VERSION}'
+          git push origin HEAD:new-version
+        """
+      }
+    }
+  }
+}

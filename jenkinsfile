@@ -43,26 +43,30 @@ pipeline{
       }
     }
     stage('Build new container image'){
-      withCredentials([usernamePassword(credentialsId: 'dockerhub-myrepo',usernameVariable:'USERNAME', passwordVariable:'PASSWORD')]){
-        sh """
-          echo ${PASSWORD} | docker login -u ${USERNAME} --password-stdin
-          docker build -t ${USERNAME}/node-js-app:${env.IMAGE_VERSION}
-          docker push ${USERNAME}/node-js-app:${env.IMAGE_VERSION}
-        """
+      steps{
+        withCredentials([usernamePassword(credentialsId: 'dockerhub-myrepo',usernameVariable:'USERNAME', passwordVariable:'PASSWORD')]){
+          sh """
+            echo ${PASSWORD} | docker login -u ${USERNAME} --password-stdin
+            docker build -t ${USERNAME}/node-js-app:${env.IMAGE_VERSION}
+            docker push ${USERNAME}/node-js-app:${env.IMAGE_VERSION}
+          """
+       }
       }
     }
     stage('Commit changes to git'){
-      withCredentials([string(credentialsId: 'github-token',variable:'TOKEN')]){
-        withCredentials([string(credentialsId: 'github-repo', variable:'REPO_URL')])
-        sh """
-          git config --user.email jenkins@myexample.com
-          git config --user.name jenkins
+      steps{
+        withCredentials([string(credentialsId: 'github-token',variable:'TOKEN')]){
+          withCredentials([string(credentialsId: 'github-repo', variable:'REPO_URL')])
+          sh """
+            git config --user.email jenkins@myexample.com
+            git config --user.name jenkins
 
-          git remote set-url origin ${REPO_URL}
-          git add .
-          git commit -m 'version upgrade to ${env.NEW_VERSION}'
-          git push origin HEAD:new-version
-        """
+            git remote set-url origin ${REPO_URL}
+            git add .
+            git commit -m 'version upgrade to ${env.NEW_VERSION}'
+            git push origin HEAD:new-version
+          """
+        }
       }
     }
   }

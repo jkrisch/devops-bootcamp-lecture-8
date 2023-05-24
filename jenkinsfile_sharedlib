@@ -1,0 +1,38 @@
+@Library('node-app')
+pipeline{
+  agent any
+  tools {
+    nodejs "node"
+  }
+  stages{
+    stage('Increment Version'){
+      steps{
+        script {
+          //working dir app as the package.json file is located there and the npm command needs to be executed from within the folder where this file is located.
+          dir('app'){
+            incrementNpmMinorVersion() 
+          }
+        }
+      }
+    }
+    stage('Runt tests'){
+      steps{
+        script{
+          dir('app'){
+            runNpmTests()
+          }
+        }
+      }
+    }
+    stage('Build new container image'){
+      steps{
+        buildAndPushContainerImage('dockerhub-myrepo')
+      }
+    }
+    stage('Commit changes to git'){
+      steps{
+        commitGitChanges('github-token','https://github.com/jkrisch/devops-bootcamp-lecture-8.git')
+      } 
+    }
+  }
+}
